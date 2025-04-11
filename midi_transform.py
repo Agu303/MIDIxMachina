@@ -1,7 +1,7 @@
 import mido
 import numpy as np
 import pygame
-from noise import pnoise2
+from perlin_noise import PerlinNoise
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
 import random
@@ -43,12 +43,13 @@ class MIDITransformer:
     
     def perlin_transform(self, midi_file, scale=0.1, octaves=6):
         """Transform MIDI using Perlin noise."""
+        noise = PerlinNoise(octaves=octaves)
         notes = []
         for msg in midi_file:
             if msg.type == 'note_on':
                 x = msg.note * scale
                 y = msg.time * scale
-                value = pnoise2(x, y, octaves=octaves)
+                value = noise([x, y])
                 # Map noise value to MIDI note
                 new_note = int((value + 1) * 64)  # Scale to 0-127
                 notes.append((new_note, msg.velocity, msg.time))
