@@ -119,9 +119,9 @@ class MIDITransformerGUI(QMainWindow):
         
         if choice == 1:
             notes = self.transformer.game_of_life_transform(self.midi_file)
-            fig, ax = self.transformer.visualize_pattern(notes[0], "Game of Life")
+            fig, ax = self.transformer.visualize_pattern(notes, "Game of Life")
             self.canvas.draw()
-            return notes[0]
+            return notes
         elif choice == 2:
             notes = self.transformer.perlin_transform(self.midi_file)
             fig, ax = self.transformer.visualize_pattern(notes, "Perlin Noise")
