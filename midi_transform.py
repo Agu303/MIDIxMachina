@@ -280,15 +280,24 @@ class MIDITransformer:
                 # Set y-axis to show MIDI note range
                 ax.set_ylim(0, 127)
                 
+                # Set x-axis limits based on time steps
+                if times:
+                    ax.set_xlim(min(times) - 1, max(times) + 1)
+                else:
+                    ax.set_xlim(0, 10)
+                
                 # Return a sequence of artists
                 return [scatter]
             
-            # Create animation
+            # Create animation with a longer interval for better visibility
             anim = FuncAnimation(fig, update, frames=len(notes), 
-                               interval=50, blit=True)
+                               interval=200, blit=True, repeat=True)
             
             # Store the animation object in the figure
             fig.anim = anim
+            
+            # Show the initial frame
+            update(0)
             
             plt.tight_layout()
             return fig, ax
