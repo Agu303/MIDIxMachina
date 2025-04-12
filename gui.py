@@ -13,7 +13,7 @@ class MIDITransformerGUI(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("MIDIxMachina - MIDI Transformation Tool")
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(1000, 800)
         
         # Initialize the transformer
         self.transformer = MIDITransformer()
@@ -116,26 +116,27 @@ class MIDITransformerGUI(QMainWindow):
     
     def _apply_transformation(self, choice):
         self.figure.clear()
-        ax = self.figure.add_subplot(111)
         
         if choice == 1:
             notes = self.transformer.game_of_life_transform(self.midi_file)
-            self.transformer.visualize_pattern(notes[0], "Game of Life")
+            fig, ax = self.transformer.visualize_pattern(notes[0], "Game of Life")
+            self.canvas.draw()
             return notes[0]
         elif choice == 2:
             notes = self.transformer.perlin_transform(self.midi_file)
-            self.transformer.visualize_pattern(notes, "Perlin Noise")
+            fig, ax = self.transformer.visualize_pattern(notes, "Perlin Noise")
+            self.canvas.draw()
             return notes
         elif choice == 3:
             notes = self.transformer.lorenz_transform(self.midi_file)
-            self.transformer.visualize_pattern(notes, "Lorenz Attractor")
+            fig, ax = self.transformer.visualize_pattern(notes, "Lorenz Attractor")
+            self.canvas.draw()
             return notes
         elif choice == 4:
             notes = self.transformer.brownian_transform(self.midi_file)
-            self.transformer.visualize_pattern(notes, "Brownian Motion")
+            fig, ax = self.transformer.visualize_pattern(notes, "Brownian Motion")
+            self.canvas.draw()
             return notes
-        
-        self.canvas.draw()
     
     def export_audio(self):
         if not self.transformed_notes:
