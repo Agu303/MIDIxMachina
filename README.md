@@ -1,6 +1,6 @@
 # MIDIxMachina
 
-![Alt text](MIDIxMachina/mm-logo.png)
+![Alt text](mm-logo.png)
 
 MIDIxMachina is a creative tool that transforms MIDI files using various mathematical and algorithmic transformations, creating unique musical patterns and visualizations.
 
