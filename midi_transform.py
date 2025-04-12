@@ -92,10 +92,19 @@ class MIDITransformer:
     
     def _midi_to_grid(self, midi_file):
         """Convert MIDI notes to a 2D grid for Game of Life."""
-        grid = np.zeros((128, 128))  # MIDI note range
+        # Initialize grid with zeros
+        grid = np.zeros((128, 128))  # MIDI note range (0-127)
+        
+        # Track time to create proper time steps
+        current_time = 0
         for msg in midi_file:
             if msg.type == 'note_on':
-                grid[msg.note, msg.time % 128] = 1
+                # Ensure note and time are integers
+                note = int(msg.note)
+                time_step = int(current_time) % 128  # Wrap around if needed
+                grid[note, time_step] = 1
+            current_time += msg.time
+        
         return grid
     
     def _grid_to_notes(self, grid):
@@ -104,7 +113,11 @@ class MIDITransformer:
         for i in range(grid.shape[0]):
             for j in range(grid.shape[1]):
                 if grid[i, j] == 1:
-                    notes.append((i, 64, j))  # (note, velocity, time)
+                    # Convert grid indices back to MIDI parameters
+                    note = int(i)  # Ensure integer note number
+                    velocity = 64  # Default velocity
+                    time = int(j)  # Ensure integer time step
+                    notes.append((note, velocity, time))
         return notes
     
     def _count_neighbors(self, grid, x, y):
