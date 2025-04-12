@@ -122,6 +122,7 @@ class MIDITransformerGUI(QMainWindow):
         # Stop any existing animation
         if self.animation is not None:
             self.animation.event_source.stop()
+            self.animation = None
         
         if choice == 1:
             notes = self.transformer.game_of_life_transform(self.midi_file)
@@ -129,6 +130,7 @@ class MIDITransformerGUI(QMainWindow):
             self.canvas.figure = fig
             self.animation = fig.anim  # Store the animation
             self.canvas.draw()
+            self.animation._start()  # Explicitly start the animation
             return notes
         elif choice == 2:
             notes = self.transformer.perlin_transform(self.midi_file)
@@ -136,6 +138,7 @@ class MIDITransformerGUI(QMainWindow):
             self.canvas.figure = fig
             self.animation = fig.anim
             self.canvas.draw()
+            self.animation._start()
             return notes
         elif choice == 3:
             notes = self.transformer.lorenz_transform(self.midi_file)
@@ -143,6 +146,7 @@ class MIDITransformerGUI(QMainWindow):
             self.canvas.figure = fig
             self.animation = fig.anim
             self.canvas.draw()
+            self.animation._start()
             return notes
         elif choice == 4:
             notes = self.transformer.brownian_transform(self.midi_file)
@@ -150,6 +154,7 @@ class MIDITransformerGUI(QMainWindow):
             self.canvas.figure = fig
             self.animation = fig.anim
             self.canvas.draw()
+            self.animation._start()
             return notes
     
     def export_audio(self):
