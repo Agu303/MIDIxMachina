@@ -52,6 +52,12 @@ class MIDITransformerGUI(QMainWindow):
         transform_layout.addWidget(transform_button)
         layout.addLayout(transform_layout)
         
+        # Loading text
+        self.loading_label = QLabel("")
+        self.loading_label.setStyleSheet("QLabel { color: cyan; font-size: 14px; padding: 10px; }")
+        self.loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.loading_label)
+        
         # Matplotlib figure for visualization
         self.figure = Figure(figsize=(8, 4))
         self.canvas = FigureCanvas(self.figure)
@@ -110,10 +116,17 @@ class MIDITransformerGUI(QMainWindow):
             return
         
         try:
+            self.loading_label.setText("Processing transformation... Please wait...")
+            self.loading_label.repaint()  # Force immediate update
+            QApplication.processEvents()  # Process any pending events
+            
             choice = self.transform_combo.currentIndex() + 1
             self.transformed_notes = self._apply_transformation(choice)
+            
+            self.loading_label.setText("")  # Clear loading text
             self.statusBar().showMessage("Transformation applied successfully")
         except Exception as e:
+            self.loading_label.setText("")  # Clear loading text
             QMessageBox.critical(self, "Error", f"Transformation failed: {str(e)}")
     
     def _apply_transformation(self, choice):
