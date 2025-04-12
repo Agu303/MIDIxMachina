@@ -19,6 +19,7 @@ class MIDITransformerGUI(QMainWindow):
         self.transformer = MIDITransformer()
         self.midi_file = None
         self.transformed_notes = None
+        self.animation = None  # Store the animation object
         
         # Create the main widget and layout
         main_widget = QWidget()
@@ -118,28 +119,36 @@ class MIDITransformerGUI(QMainWindow):
     def _apply_transformation(self, choice):
         self.figure.clear()
         
+        # Stop any existing animation
+        if self.animation is not None:
+            self.animation.event_source.stop()
+        
         if choice == 1:
             notes = self.transformer.game_of_life_transform(self.midi_file)
             fig, ax = self.transformer.visualize_pattern(notes, "Game of Life")
             self.canvas.figure = fig
+            self.animation = fig.anim  # Store the animation
             self.canvas.draw()
             return notes
         elif choice == 2:
             notes = self.transformer.perlin_transform(self.midi_file)
             fig, ax = self.transformer.visualize_pattern(notes, "Perlin Noise")
             self.canvas.figure = fig
+            self.animation = fig.anim
             self.canvas.draw()
             return notes
         elif choice == 3:
             notes = self.transformer.lorenz_transform(self.midi_file)
             fig, ax = self.transformer.visualize_pattern(notes, "Lorenz Attractor")
             self.canvas.figure = fig
+            self.animation = fig.anim
             self.canvas.draw()
             return notes
         elif choice == 4:
             notes = self.transformer.brownian_transform(self.midi_file)
             fig, ax = self.transformer.visualize_pattern(notes, "Brownian Motion")
             self.canvas.figure = fig
+            self.animation = fig.anim
             self.canvas.draw()
             return notes
     
