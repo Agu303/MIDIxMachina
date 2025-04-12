@@ -179,15 +179,66 @@ class MIDITransformer:
             return False
     
     def visualize_pattern(self, notes, algorithm_name):
-        """Visualize the transformed pattern with rhythmic pulsing retro wireframe."""
+        """Visualize the transformed pattern with 2D note evolution."""
+        if algorithm_name == "Game of Life":
+            # Create figure with dark background
+            plt.style.use('dark_background')
+            fig = plt.figure(figsize=(10, 6))
+            ax = fig.add_subplot(111)
+            
+            # Set up the plot
+            ax.set_title(f'{algorithm_name} Transformation', color='cyan', fontsize=16, pad=20)
+            ax.set_xlabel('Time Step', color='cyan')
+            ax.set_ylabel('Note Pitch', color='purple')
+            
+            # Plot each generation with different colors
+            colors = plt.cm.viridis(np.linspace(0, 1, len(notes)))
+            for gen, (gen_notes, color) in enumerate(zip(notes, colors)):
+                times = [note[2] for note in gen_notes]
+                pitches = [note[0] for note in gen_notes]
+                population = len(gen_notes)
+                
+                # Plot notes for this generation
+                scatter = ax.scatter(times, pitches, 
+                                   color=color,
+                                   s=100,
+                                   alpha=0.8,
+                                   label=f'Gen {gen}: {population} notes')
+                
+                # Add lines connecting notes of the same pitch across generations
+                for pitch in np.unique(pitches):
+                    mask = [p == pitch for p in pitches]
+                    if any(mask):
+                        ax.plot([t for i, t in enumerate(times) if mask[i]],
+                               [p for i, p in enumerate(pitches) if mask[i]],
+                               color=color, alpha=0.3)
+            
+            # Add grid
+            ax.grid(True, color='cyan', alpha=0.2)
+            
+            # Add legend
+            ax.legend(loc='upper right', title='Generations', 
+                     frameon=True, facecolor='black', edgecolor='cyan')
+            
+            # Set y-axis to show MIDI note range
+            ax.set_ylim(0, 127)
+            
+            plt.tight_layout()
+            return fig, ax
+        else:
+            # For other algorithms, keep the existing 3D visualization
+            return self._visualize_3d(notes, algorithm_name)
+    
+    def _visualize_3d(self, notes, algorithm_name):
+        """3D visualization for other algorithms."""
         # Create a custom retro color map
-        colors = [(0, 0, 0), (0, 1, 0), (1, 1, 0), (1, 0, 0)]  # Black to Green to Yellow to Red
+        colors = [(0, 0, 0), (0, 1, 0), (1, 1, 0), (1, 0, 0)]
         retro_cmap = LinearSegmentedColormap.from_list('retro', colors)
         
         # Extract note data
-        times = [note[2] for note in notes]  # time steps on x-axis
-        pitches = [note[0] for note in notes]  # note pitches on y-axis
-        velocities = [note[1] for note in notes]  # velocity on z-axis
+        times = [note[2] for note in notes]
+        pitches = [note[0] for note in notes]
+        velocities = [note[1] for note in notes]
         
         # Create figure with dark background
         plt.style.use('dark_background')
@@ -200,9 +251,9 @@ class MIDITransformer:
         ax.set_ylabel('Note', color='purple')
         ax.set_zlabel('Velocity', color='yellow')
         
-        # Create wireframe grid with time on x-axis
-        x = np.linspace(min(times), max(times), 20)  # time steps
-        y = np.linspace(min(pitches), max(pitches), 20)  # note pitches
+        # Create wireframe grid
+        x = np.linspace(min(times), max(times), 20)
+        y = np.linspace(min(pitches), max(pitches), 20)
         X, Y = np.meshgrid(x, y)
         Z = np.zeros_like(X)
         
@@ -214,62 +265,5 @@ class MIDITransformer:
                            s=100,
                            alpha=0.8)
         
-        # Add pulsing effect
-        def update(frame):
-            # Clear previous frame
-            ax.clear()
-            
-            # Update wireframe with pulsing effect
-            pulse = np.sin(frame * 0.1) * 0.5 + 0.5  # Oscillating between 0 and 1
-            Z = np.sin(X * 0.1 + frame * 0.2) * pulse
-            
-            # Recreate the plot
-            wire = ax.plot_wireframe(X, Y, Z, color='cyan', alpha=0.3)
-            scatter = ax.scatter(times, pitches, velocities, 
-                               c=velocities, 
-                               cmap=retro_cmap,
-                               s=100,
-                               alpha=0.8)
-            
-            # Update labels
-            ax.set_title(f'{algorithm_name} Transformation', color='cyan', fontsize=16, pad=20)
-            ax.set_xlabel('Time', color='cyan')
-            ax.set_ylabel('Note', color='purple')
-            ax.set_zlabel('Velocity', color='yellow')
-            
-            # Set view angle to rotate slowly
-            ax.view_init(elev=20, azim=frame)
-            
-            return wire, scatter
-        
-        # Create animation
-        anim = FuncAnimation(fig, update, frames=360, interval=50, blit=True)
-        
-        # Add algorithm-specific visual elements
-        if algorithm_name == "Game of Life":
-            # Add grid lines
-            ax.grid(True, color='cyan', alpha=0.2)
-            # Add time progression lines
-            for pitch in np.unique(pitches):
-                mask = [p == pitch for p in pitches]
-                if any(mask):
-                    ax.plot([t for i, t in enumerate(times) if mask[i]],
-                           [p for i, p in enumerate(pitches) if mask[i]],
-                           [v for i, v in enumerate(velocities) if mask[i]],
-                           'cyan', alpha=0.1)
-        elif algorithm_name == "Perlin Noise":
-            # Add flowing lines
-            for i in range(5):
-                ax.plot(times, pitches, velocities + i*10, 'cyan', alpha=0.1)
-        elif algorithm_name == "Lorenz Attractor":
-            # Add spiral effect
-            theta = np.linspace(0, 4*np.pi, 100)
-            ax.plot(np.sin(theta)*10, np.cos(theta)*10, theta*5, 'cyan', alpha=0.2)
-        elif algorithm_name == "Brownian Motion":
-            # Add random walk lines
-            for i in range(3):
-                random_walk = np.cumsum(np.random.randn(len(times)))
-                ax.plot(times, pitches + random_walk, velocities, 'cyan', alpha=0.1)
-        
         plt.tight_layout()
-        plt.show()
+        return fig, ax
