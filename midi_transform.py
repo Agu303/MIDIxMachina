@@ -287,6 +287,9 @@ class MIDITransformer:
             anim = FuncAnimation(fig, update, frames=len(notes), 
                                interval=50, blit=True)
             
+            # Store the animation object in the figure
+            fig.anim = anim
+            
             plt.tight_layout()
             return fig, ax
         else:
