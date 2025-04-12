@@ -172,9 +172,9 @@ class MIDITransformer:
         retro_cmap = LinearSegmentedColormap.from_list('retro', colors)
         
         # Extract note data
-        times = [note[2] for note in notes]
-        pitches = [note[0] for note in notes]
-        velocities = [note[1] for note in notes]
+        times = [note[2] for note in notes]  # time steps on x-axis
+        pitches = [note[0] for note in notes]  # note pitches on y-axis
+        velocities = [note[1] for note in notes]  # velocity on z-axis
         
         # Create figure with dark background
         plt.style.use('dark_background')
@@ -184,12 +184,12 @@ class MIDITransformer:
         # Set up the plot
         ax.set_title(f'{algorithm_name} Transformation', color='cyan', fontsize=16, pad=20)
         ax.set_xlabel('Time', color='cyan')
-        ax.set_ylabel('Note', color='cyan')
-        ax.set_zlabel('Velocity', color='cyan')
+        ax.set_ylabel('Note', color='purple')
+        ax.set_zlabel('Velocity', color='yellow')
         
-        # Create wireframe grid
-        x = np.linspace(min(times), max(times), 20)
-        y = np.linspace(min(pitches), max(pitches), 20)
+        # Create wireframe grid with time on x-axis
+        x = np.linspace(min(times), max(times), 20)  # time steps
+        y = np.linspace(min(pitches), max(pitches), 20)  # note pitches
         X, Y = np.meshgrid(x, y)
         Z = np.zeros_like(X)
         
@@ -221,8 +221,8 @@ class MIDITransformer:
             # Update labels
             ax.set_title(f'{algorithm_name} Transformation', color='cyan', fontsize=16, pad=20)
             ax.set_xlabel('Time', color='cyan')
-            ax.set_ylabel('Note', color='cyan')
-            ax.set_zlabel('Velocity', color='cyan')
+            ax.set_ylabel('Note', color='purple')
+            ax.set_zlabel('Velocity', color='yellow')
             
             # Set view angle to rotate slowly
             ax.view_init(elev=20, azim=frame)
@@ -236,6 +236,14 @@ class MIDITransformer:
         if algorithm_name == "Game of Life":
             # Add grid lines
             ax.grid(True, color='cyan', alpha=0.2)
+            # Add time progression lines
+            for pitch in np.unique(pitches):
+                mask = [p == pitch for p in pitches]
+                if any(mask):
+                    ax.plot([t for i, t in enumerate(times) if mask[i]],
+                           [p for i, p in enumerate(pitches) if mask[i]],
+                           [v for i, v in enumerate(velocities) if mask[i]],
+                           'cyan', alpha=0.1)
         elif algorithm_name == "Perlin Noise":
             # Add flowing lines
             for i in range(5):
