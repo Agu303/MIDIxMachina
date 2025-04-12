@@ -20,28 +20,87 @@ class MIDITransformer:
         return mido.MidiFile(file_path)
     
     def game_of_life_transform(self, midi_file, generations=10):
-        """Transform MIDI using Conway's Game of Life algorithm."""
-        # Convert MIDI notes to initial grid
-        grid = self._midi_to_grid(midi_file)
+        """Transform MIDI using Conway's Game of Life algorithm with special rules."""
+        # Get tempo from MIDI file
+        tempo = self._get_midi_tempo(midi_file)
+        ticks_per_beat = midi_file.ticks_per_beat
+        
+        # Convert MIDI notes to initial grid with duration information
+        grid, note_durations = self._midi_to_grid_with_duration(midi_file, tempo, ticks_per_beat)
         transformed_notes = []
         
-        for _ in range(generations):
+        # Animation frames (20 FPS)
+        frames_per_second = 20
+        total_frames = int(generations * frames_per_second)
+        
+        for frame in range(total_frames):
             new_grid = np.zeros_like(grid)
+            current_generation = frame // frames_per_second
+            
+            # Update grid based on Game of Life rules
             for i in range(grid.shape[0]):
                 for j in range(grid.shape[1]):
-                    neighbors = self._count_neighbors(grid, i, j)
-                    if grid[i, j] == 1:
+                    if grid[i, j] > 0:  # Cell is alive
+                        # Check if it's a C note (immortal)
+                        if i % 12 == 0:  # C notes are every 12 semitones
+                            new_grid[i, j] = grid[i, j]
+                            continue
+                            
+                        neighbors = self._count_neighbors(grid, i, j)
                         if neighbors < 2 or neighbors > 3:
-                            new_grid[i, j] = 0
+                            new_grid[i, j] = max(0, grid[i, j] - 1)  # Fade out
                         else:
-                            new_grid[i, j] = 1
+                            new_grid[i, j] = grid[i, j]  # Stay alive
                     else:
+                        neighbors = self._count_neighbors(grid, i, j)
                         if neighbors == 3:
-                            new_grid[i, j] = 1
+                            new_grid[i, j] = note_durations[i, j]  # Born with full duration
+            
             grid = new_grid
             transformed_notes.append(self._grid_to_notes(grid))
         
         return transformed_notes
+    
+    def _get_midi_tempo(self, midi_file):
+        """Extract tempo from MIDI file."""
+        default_tempo = 500000  # Default MIDI tempo (120 BPM)
+        for msg in midi_file:
+            if msg.type == 'set_tempo':
+                return msg.tempo
+        return default_tempo
+    
+    def _midi_to_grid_with_duration(self, midi_file, tempo, ticks_per_beat):
+        """Convert MIDI notes to a 2D grid with duration information."""
+        grid = np.zeros((128, 128))  # MIDI note range (0-127)
+        note_durations = np.zeros((128, 128))  # Store note durations
+        
+        # Convert ticks to seconds
+        def ticks_to_seconds(ticks):
+            return (ticks * tempo) / (ticks_per_beat * 1000000)
+        
+        # Track active notes and their start times
+        active_notes = {}
+        current_time = 0
+        
+        for msg in midi_file:
+            current_time += msg.time
+            if msg.type == 'note_on':
+                note = int(msg.note)
+                time_step = int(current_time) % 128
+                active_notes[(note, time_step)] = current_time
+            elif msg.type == 'note_off':
+                note = int(msg.note)
+                time_step = int(current_time) % 128
+                if (note, time_step) in active_notes:
+                    start_time = active_notes[(note, time_step)]
+                    duration = current_time - start_time
+                    # Convert duration to frames (20 FPS)
+                    duration_frames = int(ticks_to_seconds(duration) * 20)
+                    grid[note, time_step] = duration_frames
+                    note_durations[note, time_step] = duration_frames
+                    del active_notes[(note, time_step)]
+        
+        return grid, note_durations
     
     def perlin_transform(self, midi_file, scale=0.1, octaves=6):
         """Transform MIDI using Perlin noise."""
@@ -179,7 +238,7 @@ class MIDITransformer:
             return False
     
     def visualize_pattern(self, notes, algorithm_name):
-        """Visualize the transformed pattern with 2D note evolution."""
+        """Visualize the transformed pattern with real-time evolution."""
         if algorithm_name == "Game of Life":
             # Create figure with dark background
             plt.style.use('dark_background')
@@ -191,37 +250,41 @@ class MIDITransformer:
             ax.set_xlabel('Time Step', color='cyan')
             ax.set_ylabel('Note Pitch', color='purple')
             
-            # Plot each generation with different colors
-            colors = plt.cm.viridis(np.linspace(0, 1, len(notes)))
-            for gen, (gen_notes, color) in enumerate(zip(notes, colors)):
-                times = [note[2] for note in gen_notes]
-                pitches = [note[0] for note in gen_notes]
-                population = len(gen_notes)
+            # Create animation
+            def update(frame):
+                ax.clear()
+                current_notes = notes[frame]
                 
-                # Plot notes for this generation
+                # Plot current state
+                times = [note[2] for note in current_notes]
+                pitches = [note[0] for note in current_notes]
+                velocities = [note[1] for note in current_notes]
+                
+                # Color C notes differently (immortal)
+                colors = ['yellow' if p % 12 == 0 else 'cyan' for p in pitches]
+                
                 scatter = ax.scatter(times, pitches, 
-                                   color=color,
+                                   c=colors,
                                    s=100,
-                                   alpha=0.8,
-                                   label=f'Gen {gen}: {population} notes')
+                                   alpha=0.8)
                 
-                # Add lines connecting notes of the same pitch across generations
-                for pitch in np.unique(pitches):
-                    mask = [p == pitch for p in pitches]
-                    if any(mask):
-                        ax.plot([t for i, t in enumerate(times) if mask[i]],
-                               [p for i, p in enumerate(pitches) if mask[i]],
-                               color=color, alpha=0.3)
+                # Add grid
+                ax.grid(True, color='cyan', alpha=0.2)
+                
+                # Update labels
+                ax.set_title(f'{algorithm_name} Transformation - Frame {frame}', 
+                           color='cyan', fontsize=16, pad=20)
+                ax.set_xlabel('Time Step', color='cyan')
+                ax.set_ylabel('Note Pitch', color='purple')
+                
+                # Set y-axis to show MIDI note range
+                ax.set_ylim(0, 127)
+                
+                return scatter
             
-            # Add grid
-            ax.grid(True, color='cyan', alpha=0.2)
-            
-            # Add legend
-            ax.legend(loc='upper right', title='Generations', 
-                     frameon=True, facecolor='black', edgecolor='cyan')
-            
-            # Set y-axis to show MIDI note range
-            ax.set_ylim(0, 127)
+            # Create animation
+            anim = FuncAnimation(fig, update, frames=len(notes), 
+                               interval=50, blit=True)
             
             plt.tight_layout()
             return fig, ax
