@@ -54,6 +54,7 @@ class MIDITransformerGUI(QMainWindow):
         # Matplotlib figure for visualization
         self.figure = Figure(figsize=(8, 4))
         self.canvas = FigureCanvas(self.figure)
+        self.canvas.setParent(main_widget)
         layout.addWidget(self.canvas)
         
         # Audio export options
@@ -120,21 +121,25 @@ class MIDITransformerGUI(QMainWindow):
         if choice == 1:
             notes = self.transformer.game_of_life_transform(self.midi_file)
             fig, ax = self.transformer.visualize_pattern(notes, "Game of Life")
+            self.canvas.figure = fig
             self.canvas.draw()
             return notes
         elif choice == 2:
             notes = self.transformer.perlin_transform(self.midi_file)
             fig, ax = self.transformer.visualize_pattern(notes, "Perlin Noise")
+            self.canvas.figure = fig
             self.canvas.draw()
             return notes
         elif choice == 3:
             notes = self.transformer.lorenz_transform(self.midi_file)
             fig, ax = self.transformer.visualize_pattern(notes, "Lorenz Attractor")
+            self.canvas.figure = fig
             self.canvas.draw()
             return notes
         elif choice == 4:
             notes = self.transformer.brownian_transform(self.midi_file)
             fig, ax = self.transformer.visualize_pattern(notes, "Brownian Motion")
+            self.canvas.figure = fig
             self.canvas.draw()
             return notes
     
