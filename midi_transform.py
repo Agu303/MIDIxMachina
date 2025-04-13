@@ -2,13 +2,10 @@ import mido
 import numpy as np
 import pygame
 from perlin_noise import PerlinNoise
-import matplotlib.pyplot as plt
 from scipy.integrate import odeint
 import random
 import soundfile as sf
 import os
-from matplotlib.animation import FuncAnimation
-from matplotlib.colors import LinearSegmentedColormap
 
 class MIDITransformer:
     def __init__(self):
@@ -46,7 +43,6 @@ class MIDITransformer:
         # Run Game of Life for specified generations
         for gen in range(generations):
             new_grid = np.zeros_like(grid)
-
             # Update grid based on Game of Life rules
             for i in range(grid.shape[0]):
                 for j in range(grid.shape[1]):
@@ -222,6 +218,4 @@ class MIDITransformer:
             print(f"Error exporting audio: {str(e)}")
             return False
 
-    #def visualize_pattern(self, notes, algorithm_name):
-        #"""Visualize the transformed pattern with real-time evolution."""
-        #if ...
+    # The visualize_pattern method is intentionally omitted because visualization is now handled via PyQtGraph.
