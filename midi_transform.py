@@ -19,7 +19,7 @@ class MIDITransformer:
         """Load a MIDI file and return its contents."""
         return mido.MidiFile(file_path)
 
-    def game_of_life_transform(self, midi_file, generations=10):
+    def game_of_life_transform(self, midi_file, generations=100):
         """Transform MIDI using Conway's Game of Life algorithm with special rules."""
         # Get tempo from MIDI file
         tempo = self._get_midi_tempo(midi_file)
