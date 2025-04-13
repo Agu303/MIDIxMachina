@@ -54,7 +54,7 @@ class MIDITransformerGUI(QMainWindow):
         
         # Loading text
         self.loading_label = QLabel("")
-        self.loading_label.setStyleSheet("QLabel { color: cyan; font-size: 14px; padding: 10px; }")
+        self.loading_label.setStyleSheet("QLabel { color: #333333; font-weight: bold; font-size: 14px; padding: 10px; background-color: #f0f0f0; border-radius: 4px; }")
         self.loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.loading_label)
         
@@ -131,68 +131,51 @@ class MIDITransformerGUI(QMainWindow):
     
     def _apply_transformation(self, choice):
         self.figure.clear()
-        
-        # Stop any existing animation
+    
+    # Stop any existing animation
         if self.animation is not None:
             self.animation.event_source.stop()
             self.animation = None
-        
+    
         if choice == 1:
             notes = self.transformer.game_of_life_transform(self.midi_file)
             fig, ax = self.transformer.visualize_pattern(notes, "Game of Life")
             self.canvas.figure = fig
             self.animation = fig.anim  # Store the animation
             self.canvas.draw()
-            self.animation._start()  # Explicitly start the animation
-            return notes
-        elif choice == 2:
-            notes = self.transformer.perlin_transform(self.midi_file)
-            fig, ax = self.transformer.visualize_pattern(notes, "Perlin Noise")
-            self.canvas.figure = fig
-            self.animation = fig.anim
-            self.canvas.draw()
-            self.animation._start()
-            return notes
-        elif choice == 3:
-            notes = self.transformer.lorenz_transform(self.midi_file)
-            fig, ax = self.transformer.visualize_pattern(notes, "Lorenz Attractor")
-            self.canvas.figure = fig
-            self.animation = fig.anim
-            self.canvas.draw()
-            self.animation._start()
-            return notes
-        elif choice == 4:
-            notes = self.transformer.brownian_transform(self.midi_file)
-            fig, ax = self.transformer.visualize_pattern(notes, "Brownian Motion")
-            self.canvas.figure = fig
-            self.animation = fig.anim
-            self.canvas.draw()
-            self.animation._start()
+            # Need to add this line to start animation:
+            plt.pause(0.001)  # This will start the interactive mode
             return notes
     
     def export_audio(self):
         if not self.transformed_notes:
             QMessageBox.warning(self, "Warning", "Please apply a transformation first")
             return
-        
+    
         output_path = self.output_edit.text()
         if not output_path:
             QMessageBox.warning(self, "Warning", "Please enter an output file path")
             return
-        
+    
         format_map = {
             "WAV": "wav",
             "FLAC": "flac",
             "OGG": "ogg",
             "MP3": "mp3"
         }
-        
+    
         format = format_map[self.format_combo.currentText()]
         output_file = f"{output_path}.{format}"
         duration = self.duration_spin.value()
         
         try:
-            if self.transformer.export_to_audio(self.transformed_notes, output_file, format, duration):
+            # Flatten the list of frames to a single list of notes if needed
+            notes_to_export = self.transformed_notes
+            if isinstance(self.transformed_notes[0], list):
+                # We have frames, use the last frame
+                notes_to_export = self.transformed_notes[-1]
+                
+            if self.transformer.export_to_audio(notes_to_export, output_file, format, duration):
                 QMessageBox.information(self, "Success", f"Audio exported successfully to {output_file}")
                 self.statusBar().showMessage("Audio exported successfully")
             else:
