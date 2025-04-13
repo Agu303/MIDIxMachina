@@ -189,7 +189,7 @@ class MIDITransformerGUI(QMainWindow):
             times = [note[2] for note in current_notes]
             pitches = [note[0] for note in current_notes]
             
-            # Color C notes differently (immortal)
+            # Immortal C notes = Yellow
             brushes = [
             pg.mkBrush('yellow') if pitch % 12 == 0 else pg.mkBrush('cyan')
             for pitch in pitches
@@ -228,7 +228,17 @@ class MIDITransformerGUI(QMainWindow):
     def next_frame(self):
         if self.notes_frames:
             self.current_frame = (self.current_frame + 1) % len(self.notes_frames)
+            
+            current_notes = self.notes_frames[self.current_frame]
+            if not current_notes:
+                self.update_timer.stop()
+                self.update_timer = None
+                self.play_button.setText("▶ Play")
+                self.statusBar().showMessage("Animation stopped: no more active notes.")
+                return
+            
             self.update_frame()
+
     
     def export_audio(self):
         if not self.transformed_notes:
