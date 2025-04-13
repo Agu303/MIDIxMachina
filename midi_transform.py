@@ -295,6 +295,7 @@ class MIDITransformer:
             
             # Store the animation object in the figure
             fig.anim = anim
+            self.current_animation = anim
             
             # Show the initial frame
             update(0)
