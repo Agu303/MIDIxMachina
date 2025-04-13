@@ -17,55 +17,73 @@ class MIDITransformer:
         return mido.MidiFile(file_path)
 
     def game_of_life_transform(self, midi_file, generations=100):
-        """Transform MIDI using Conway's Game of Life algorithm with special rules."""
-        # Get tempo from MIDI file
+        """Game of Life MIDI transformation with GoL + MIDI injection + special rules."""
         tempo = self._get_midi_tempo(midi_file)
         ticks_per_beat = midi_file.ticks_per_beat
 
-        # Convert MIDI notes to initial grid with duration information
-        grid, note_durations = self._midi_to_grid_with_duration(midi_file, tempo, ticks_per_beat)
+        # Create note timeline from MIDI
+        note_timeline = [[] for _ in range(generations)]
+        current_time = 0
 
-        # Ensure we have some initial data
-        if np.sum(grid) == 0:
-            # If grid is empty, add some initial cells to make it interesting
-            for i in range(30, 90, 12):  # Add some C notes
-                grid[i, 20] = 10
-                note_durations[i, 20] = 10
+        def ticks_to_seconds(ticks):
+            return (ticks * tempo) / (ticks_per_beat * 1_000_000)
 
-            for i in range(40, 80, 7):  # Add some other notes
-                grid[i, 30] = 8
-                note_durations[i, 30] = 8
+        for msg in midi_file:
+            current_time += msg.time
+            if msg.type == 'note_on' and msg.velocity > 0:
+                seconds = ticks_to_seconds(current_time)
+                frame_index = int(seconds * 20)
+                if frame_index < generations:
+                    note_timeline[frame_index].append((msg.note, msg.velocity))
+
+        # Find first active frame
+        start_frame = next((i for i, notes in enumerate(note_timeline) if notes), 0)
+
+        # Initialize grid and lifespan map
+        grid = np.zeros((128, 128))
+        note_durations = np.zeros((128, 128))
 
         transformed_frames = []
-        # Store initial state
-        transformed_frames.append(self._grid_to_notes(grid))
 
-        # Run Game of Life for specified generations
-        for gen in range(generations):
+        for frame in range(start_frame, generations):
             new_grid = np.zeros_like(grid)
-            # Update grid based on Game of Life rules
-            for i in range(grid.shape[0]):
-                for j in range(grid.shape[1]):
-                    if grid[i, j] > 0:  # Cell is alive
-                        # Check if it's a C note (immortal)
-                        if i % 12 == 0:  # C notes are every 12 semitones
-                            new_grid[i, j] = grid[i, j]
-                            continue
 
-                        neighbors = self._count_neighbors(grid, i, j)
+            # Apply Game of Life + MIDI + fading
+            for i in range(128):  # pitch
+                for j in range(128):  # time column
+                    cell_alive = grid[i, j] > 0
+
+                    # Count neighbors
+                    neighbors = self._count_neighbors(grid, i, j)
+
+                    # MIDI activity on this pitch
+                    midi_triggered = any(note == i for note, _ in note_timeline[frame])
+
+                    # Rule: Immortal C notes stay forever
+                    if i % 12 == 0 and cell_alive:
+                        new_grid[i, j] = grid[i, j]
+                        continue
+
+                    # Rule: refresh existing note if MIDI re-triggers it
+                    if cell_alive and midi_triggered:
+                        new_grid[i, j] = max(grid[i, j], 10)  # Renew lifespan
+                        continue
+
+                    # Game of Life logic
+                    if cell_alive:
                         if neighbors < 2 or neighbors > 3:
-                            new_grid[i, j] = max(0, grid[i, j] - 1)  # Fade out
+                            new_grid[i, j] = max(0, grid[i, j] - 1)  # fade
                         else:
-                            new_grid[i, j] = grid[i, j]  # Stay alive
+                            new_grid[i, j] = grid[i, j]  # stay alive
                     else:
-                        neighbors = self._count_neighbors(grid, i, j)
-                        if neighbors == 3:
-                            new_grid[i, j] = note_durations[i, j]  # Born with full duration
+                        if neighbors == 3 or midi_triggered:
+                            new_grid[i, j] = 10  # new cell born
 
             grid = new_grid
             transformed_frames.append(self._grid_to_notes(grid))
 
         return transformed_frames
+
 
     def _get_midi_tempo(self, midi_file):
         """Extract tempo from MIDI file."""
