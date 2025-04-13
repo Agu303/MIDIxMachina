@@ -161,9 +161,8 @@ class MIDITransformerGUI(QMainWindow):
             QMessageBox.critical(self, "Error", f"Transformation failed: {str(e)}")
     
     def _apply_transformation(self, choice):
-        self.figure.clear()
-        self.ax = self.figure.add_subplot(111)
-        
+        self.plot_widget.clear()
+
         if choice == 1:
             return self.transformer.game_of_life_transform(self.midi_file)
         elif choice == 2:
