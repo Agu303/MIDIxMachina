@@ -5,9 +5,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                             QComboBox, QDoubleSpinBox, QLineEdit, QMessageBox)
 from PyQt6.QtCore import Qt, QTimer
 from midi_transform import MIDITransformer
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
+import pyqtgraph as pg
 
 class MIDITransformerGUI(QMainWindow):
     def __init__(self):
@@ -61,12 +59,14 @@ class MIDITransformerGUI(QMainWindow):
         self.loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.loading_label)
         
-        # Matplotlib figure for visualization
-        self.figure = Figure(figsize=(8, 4))
-        self.canvas = FigureCanvas(self.figure)
-        self.canvas.setParent(main_widget)
-        self.ax = self.figure.add_subplot(111)
-        layout.addWidget(self.canvas)
+        # PyQtGraph PlotWidget for visualization
+        self.plot_widget = pg.PlotWidget()
+        self.plot_widget.setBackground('k')  # Black background
+        self.plot_widget.setLabel('left', 'Note Pitch')
+        self.plot_widget.setLabel('bottom', 'Time Step')
+        self.plot_widget.showGrid(x=True, y=True, alpha=0.3)
+        layout.addWidget(self.plot_widget)
+
         
         # Animation controls
         anim_controls = QHBoxLayout()
@@ -75,7 +75,7 @@ class MIDITransformerGUI(QMainWindow):
         self.play_button.setEnabled(False)
         anim_controls.addWidget(self.play_button)
         
-        self.frame_label = QLabel("Frame: 0")
+        self.frame_label = QLabel("Generation: 0")
         anim_controls.addWidget(self.frame_label)
         layout.addLayout(anim_controls)
         
@@ -183,7 +183,7 @@ class MIDITransformerGUI(QMainWindow):
         current_notes = self.notes_frames[self.current_frame]
         
         # Clear previous plot
-        self.ax.clear()
+        self.plot_widget.clear()
         
         # Plot current state if there are notes
         if current_notes:
@@ -191,33 +191,27 @@ class MIDITransformerGUI(QMainWindow):
             pitches = [note[0] for note in current_notes]
             
             # Color C notes differently (immortal)
-            colors = ['yellow' if p % 12 == 0 else 'cyan' for p in pitches]
+            brushes = [
+            pg.mkBrush('yellow') if pitch % 12 == 0 else pg.mkBrush('cyan')
+            for pitch in pitches
+            ]
             
-            self.ax.scatter(times, pitches, c=colors, s=100, alpha=0.8)
-            
-            # Set axis limits
-            self.ax.set_ylim(0, 127)
-            min_time = min(times) if times else 0
-            max_time = max(times) if times else 10
-            self.ax.set_xlim(min_time - 1, max_time + 1)
+            # Draw scatter plot
+            scatter = pg.ScatterPlotItem(x=times, y=pitches, brush=brushes, size=10, pen=None)
+            self.plot_widget.addItem(scatter)
+
+            # Adjust plot range
+            self.plot_widget.setYRange(0, 127)
+            if times:
+                self.plot_widget.setXRange(min(times) - 1, max(times) + 1)
+            else:
+                self.plot_widget.setXRange(0, 10)
         else:
-            # Set default axis limits if no notes
-            self.ax.set_ylim(0, 127)
-            self.ax.set_xlim(0, 10)
-        
-        # Add grid and labels
-        self.ax.grid(True, color='gray', alpha=0.2)
-        transformation_name = self.transform_combo.currentText()
-        self.ax.set_title(f'{transformation_name} Transformation - Frame {self.current_frame}', 
-                        color='blue', fontsize=14)
-        self.ax.set_xlabel('Time Step')
-        self.ax.set_ylabel('Note Pitch')
-        
-        # Update frame label
-        self.frame_label.setText(f"Frame: {self.current_frame}")
-        
-        # Redraw canvas
-        self.canvas.draw()
+            self.plot_widget.setYRange(0, 127)
+            self.plot_widget.setXRange(0, 10)
+
+        # Update label
+        self.frame_label.setText(f"Generation: {self.current_frame}")
     
     def toggle_animation(self):
         if not self.update_timer:
